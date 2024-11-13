@@ -188,11 +188,7 @@ class Board : Constants {
 
     fun genCastles() {
 
-        val (kingStart, kingsideTarget, towersideTarget) = (if (side == LIGHT) Triple(E1, G1, C1) else Triple(
-            E8,
-            G8,
-            C8
-        ))
+        val (kingStart, kingsideTarget, towersideTarget) = if (side == LIGHT) Triple(E1, G1, C1) else Triple(E8, G8, C8)
 
         if ((castle and (if (side == LIGHT) 1 else 4)) != 0) genPush(kingStart, kingsideTarget, 2)
         if ((castle and (if (side == LIGHT) 2 else 8)) != 0) genPush(kingStart, towersideTarget, 2)
@@ -203,7 +199,7 @@ class Board : Constants {
 
         val p = piece[c]
 
-        for (d in 0 until offsets[p]) {
+        (0 until offsets[p]).forEach { d ->
             var to = c
             while (true) {
                 to = mailbox[mailbox64[to] + offset[p][d]]
@@ -219,71 +215,53 @@ class Board : Constants {
     }
 
     fun genPush(from: Int, to: Int, bits: Int) {
-        if ((bits and 16) != 0 && (if (side == LIGHT) to <= H8 else to >= A1)) {
-            genPromote(from, to, bits)
-            return
+        when {
+            (bits and 16) != 0 && when {
+                side == LIGHT -> to <= H8
+                else -> to >= A1
+            } -> {
+                genPromote(from, to, bits)
+                return
+            }
+            else -> pseudomoves.add(Move(from, to, 0, bits))
         }
-        pseudomoves.add(Move(from, to, 0, bits))
     }
 
     fun genPromote(from: Int, to: Int, bits: Int) {
-        for (i in KNIGHT..QUEEN) pseudomoves.add(
-            Move(
-                from,
-                to,
-                i,
-                (bits or 32)
-            )
-        )
+        (KNIGHT..QUEEN).forEach { i -> with(pseudomoves) { add(Move(from, to, i, (bits or 32))) } }
     }
 
     fun makemove(m: Move): Boolean {
-        if ((m.bits.toInt() and 2) != 0) {
+        if (m.bits and 2 != 0) {
             val from: Int
             val to: Int
 
             if (inCheck(this, side)) return false
             when (m.to) {
                 62 -> {
-                    if (color[F1] != EMPTY || color[G1] != EMPTY || isAttacked(
-                            F1, xside
-                        ) || isAttacked(G1, xside)
-                    ) {
-                        return false
-                    }
+                    if (color[F1] != EMPTY || color[G1] != EMPTY || isAttacked(F1, xside) || isAttacked(G1, xside)
+                    ) return false
                     from = H1
                     to = F1
                 }
 
                 58 -> {
-                    if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isAttacked(
-                            C1, xside
-                        ) || isAttacked(D1, xside)
-                    ) {
-                        return false
-                    }
+                    if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isAttacked(C1, xside) || isAttacked(D1, xside)
+                    ) return false
                     from = A1
                     to = D1
                 }
 
                 6 -> {
-                    if (color[F8] != EMPTY || color[G8] != EMPTY || isAttacked(
-                            F8, xside
-                        ) || isAttacked(G8, xside)
-                    ) {
-                        return false
-                    }
+                    if (color[F8] != EMPTY || color[G8] != EMPTY || isAttacked(F8, xside) || isAttacked(G8, xside)
+                    ) return false
                     from = H8
                     to = F8
                 }
 
                 2 -> {
-                    if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isAttacked(
-                            C8, xside
-                        ) || isAttacked(D8, xside)
-                    ) {
-                        return false
-                    }
+                    if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isAttacked(C8, xside) || isAttacked(D8, xside)
+                    ) return false
                     from = A8
                     to = D8
                 }
@@ -308,19 +286,27 @@ class Board : Constants {
 
         castle = castle and (castle_mask[m.from.toInt()] and castle_mask[m.to.toInt()])
 
-        ep = if ((m.bits.toInt() and 8) != 0) if (side == LIGHT) m.to + 8 else m.to - 8
-        else -1
+        ep = when {
+            m.bits and 8 != 0 -> when (side) {
+                LIGHT -> m.to + 8
+                else -> m.to - 8
+            }
+            else -> -1
+        }
 
-        fifty = if ((m.bits.toInt() and 17) != 0) 0 else fifty + 1
+        fifty = when {
+            m.bits and 17 != 0 -> 0
+            else -> fifty + 1
+        }
 
         /* move the piece */
-        color[m.to.toInt()] = side
-        piece[m.to.toInt()] = if ((m.bits.toInt() and 32) != 0) m.promote.toInt() else piece[m.from.toInt()]
-        color[m.from.toInt()] = EMPTY
-        piece[m.from.toInt()] = EMPTY
+        color[m.to] = side
+        piece[m.to] = if ((m.bits and 32) != 0) m.promote else piece[m.from]
+        color[m.from] = EMPTY
+        piece[m.from] = EMPTY
 
         /* erase the pawn if this is an en passant move */
-        if ((m.bits.toInt() and 4) != 0) {
+        if ((m.bits and 4) != 0) {
             val offset = if ((side == LIGHT)) 8 else -8
             piece[m.to + offset] = EMPTY
             color[m.to + offset] = piece[m.to + offset]
@@ -358,27 +344,27 @@ class Board : Constants {
         fifty = um.fifty
 
 // Mettre à jour la position de départ
-        color[m.from.toInt()] = side
-        piece[m.from.toInt()] = when {
-            (m.bits.toInt() and 32) != 0 -> PAWN
-            else -> piece[m.to.toInt()]
+        color[m.from] = side
+        piece[m.from] = when {
+            (m.bits and 32) != 0 -> PAWN
+            else -> piece[m.to]
         }
 
 // Mettre à jour la position de destination en fonction de la capture
         when (um.capture) {
             EMPTY -> {
-                color[m.to.toInt()] = EMPTY
-                piece[m.to.toInt()] = EMPTY
+                color[m.to] = EMPTY
+                piece[m.to] = EMPTY
             }
 
             else -> {
-                color[m.to.toInt()] = xside
-                piece[m.to.toInt()] = um.capture
+                color[m.to] = xside
+                piece[m.to] = um.capture
             }
         }
 
         when {
-            m.bits.toInt() and 2 != 0 -> {
+            m.bits and 2 != 0 -> {
                 val (from, to) = getRookMovePositions(m.to)
 
                 if (from != -1 && to != -1) {
@@ -392,7 +378,7 @@ class Board : Constants {
 
 
         when {
-            m.bits.toInt() and 4 != 0 -> if (side == LIGHT) {
+            m.bits and 4 != 0 -> if (side == LIGHT) {
                 color[m.to + 8] = xside
                 piece[m.to + 8] = PAWN
             } else {
