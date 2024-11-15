@@ -142,13 +142,11 @@ class Board : Constants {
 
     fun genPawn(c: Int) {
         val offset = if (side == LIGHT) -8 else 8
-        (side xor 1).also {
-            generatePawnCaptures(c, offset, it)
-        }
+        (side xor 1).also { generatePawnCaptures(c, offset, it) }
 
         // Génération du mouvement simple du pion vers l'avant
-        when (EMPTY) {
-            color[c + offset] -> {
+        when {
+            EMPTY == color[c + offset] -> {
                 genPush(c, c + offset, 16)
                 // Génération du double mouvement initial du pion
                 when {
@@ -201,15 +199,20 @@ class Board : Constants {
 
         (0 until offsets[p]).forEach { d ->
             var to = c
-            while (true) {
+            var continueDirection = true
+            while (continueDirection) {
                 to = mailbox[mailbox64[to] + offset[p][d]]
-                if (to == -1) break
-                if (color[to] != EMPTY) {
-                    if (color[to] == xside) genPush(c, to, 1)
-                    break
+                when {
+                    to == -1 -> continueDirection = false
+                    color[to] != EMPTY -> {
+                        if (color[to] == xside) genPush(c, to, 1)
+                        continueDirection = false
+                    }
+                    else -> {
+                        genPush(c, to, 0)
+                        if (!slide[p]) continueDirection = false
+                    }
                 }
-                genPush(c, to, 0)
-                if (!slide[p]) break
             }
         }
     }
