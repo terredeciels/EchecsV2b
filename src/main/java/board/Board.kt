@@ -1,6 +1,5 @@
 package board
 
-
 import java.lang.System.arraycopy
 import java.util.stream.IntStream.range
 
@@ -31,7 +30,6 @@ class Board : Constantes {
     private var fifty = 0
     private var um = UndoMove()
 
-
     constructor() {
         (0 until BOARD_SIZE).forEach { c -> pieces[c] = Piece() }
     }
@@ -54,12 +52,7 @@ class Board : Constantes {
             .anyMatch { sq: Int -> isAttackedByPiece(sq, sqTarget, piece[sq], side) }
     }
 
-    fun anyMatchingOffsets(
-        offsets: IntRange,
-        checkCondition: (Int) -> Boolean
-    ): Boolean {
-        return offsets.any(checkCondition)
-    }
+    fun anyMatchingOffsets(offsets: IntRange, checkCondition: (Int) -> Boolean) = offsets.any(checkCondition)
 
     fun isAttackedByPiece(sq: Int, sqTarget: Int, pieceType: Int, side: Int): Boolean {
         return when (pieceType) {
@@ -67,7 +60,6 @@ class Board : Constantes {
             else -> anyMatchingOffsets(0 until offsets[pieceType]) { isAttackedByOffset(sq, sqTarget, pieceType, it) }
         }
     }
-
 
     fun isPawnAttacked(sq: Int, sqTarget: Int, side: Int): Boolean {
         val offset = if (side == LIGHT) -8 else 8
@@ -194,12 +186,6 @@ class Board : Constantes {
             movesList.add(Move(from, to, promotionPiece, (bits or 32)))
         }
     }
-
-
-    fun genPromote(from: Int, to: Int, bits: Int) {
-        generatePromotions(from, to, bits, pseudomoves)
-    }
-
 
     fun makemove(m: Move): Boolean {
         // Gérer le roque (si applicable)
@@ -376,26 +362,6 @@ class Board : Constantes {
                 clearSquare(colorArray, pieceArray, from)
             }
         }
-    }
-
-    fun addMoveIfValid(
-        from: Int,
-        to: Int,
-        condition: Boolean,
-        bits: Int,
-        movesList: MutableList<Move>
-    ) {
-        if (condition) movesList.add(Move(from, to, 0, bits))
-    }
-
-    fun handleCastling(m: Move, colorArray: IntArray, pieceArray: IntArray, side: Int): Boolean {
-        val (rookFrom, rookTo) = getRookMovePositions(m.to)
-        if (rookFrom != -1 && rookTo != -1) {
-            updateSquare(colorArray, pieceArray, rookTo, side, ROOK)
-            clearSquare(colorArray, pieceArray, rookFrom)
-            return true
-        }
-        return false
     }
 
 }
