@@ -53,6 +53,7 @@ class Board : Constantes {
             .filter { sq: Int -> color[sq] == side }
             .anyMatch { sq: Int -> isAttackedByPiece(sq, sqTarget, piece[sq], side) }
     }
+
     fun anyMatchingOffsets(
         offsets: IntRange,
         checkCondition: (Int) -> Boolean
@@ -187,11 +188,13 @@ class Board : Constantes {
             else -> false
         }
     }
+
     fun generatePromotions(from: Int, to: Int, bits: Int, movesList: MutableList<Move>) {
         (KNIGHT..QUEEN).forEach { promotionPiece ->
             movesList.add(Move(from, to, promotionPiece, (bits or 32)))
         }
     }
+
 
     fun genPromote(from: Int, to: Int, bits: Int) {
         generatePromotions(from, to, bits, pseudomoves)
@@ -384,6 +387,7 @@ class Board : Constantes {
     ) {
         if (condition) movesList.add(Move(from, to, 0, bits))
     }
+
     fun handleCastling(m: Move, colorArray: IntArray, pieceArray: IntArray, side: Int): Boolean {
         val (rookFrom, rookTo) = getRookMovePositions(m.to)
         if (rookFrom != -1 && rookTo != -1) {
