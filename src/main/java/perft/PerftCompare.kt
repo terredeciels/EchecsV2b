@@ -5,17 +5,16 @@ import board.Constantes
 import board.Move
 import java.io.BufferedReader
 import java.io.FileReader
-import java.io.IOException
-import kotlin.Throws
 
 
-fun main(args: Array<String>) {
+fun main() {
     val perftCompare = PerftCompare()
-    perftCompare.main(args)
+    perftCompare.main()
 }
+
 class PerftCompare : Constantes() {
 
-    fun main(args: Array<String>) {
+    fun main() {
         val maxDepth = 4
         val fileReader = FileReader("/Users/gilles/IdeaProjects/EchecsV2b/src/main/java/perft/perftsuite.epd")
         val reader = BufferedReader(fileReader)

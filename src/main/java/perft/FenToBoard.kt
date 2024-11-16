@@ -3,8 +3,6 @@ package perft
 import board.Board
 import board.Constantes
 
-import kotlin.Throws
-
 class FenToBoard : Constantes() {
     private var board: Board? = null
 
@@ -15,7 +13,7 @@ class FenToBoard : Constantes() {
         return board
     }
 
-    @Throws(IllegalArgumentException::class)
+
     private fun initFromFEN(fen: String, strict: Boolean) {
         // pos.clear(); // TODO ?
         var index = 0
@@ -32,7 +30,7 @@ class FenToBoard : Constantes() {
             } else if (ch >= '1' && ch <= '8') {
                 val num = ch.code - '0'.code
                 require(col + num <= 8) { "Malformatted fen string: too many pieces in rank at index $index: $ch" }
-                for (j in 0 until num) {
+                (0 until num).forEach { j ->
                     // int _case = coorToSqi(col, row);
                     setStone(col, row, NO_STONE.toInt())
 
@@ -174,7 +172,7 @@ class FenToBoard : Constantes() {
 
     fun fenCharToStone(ch: Char): Int {
         for (stone in MIN_STONE..MAX_STONE) {
-            if (fenChars.get(stone - MIN_STONE) == ch) {
+            if (fenChars[stone - MIN_STONE] == ch) {
                 return stone
             }
         }
@@ -211,14 +209,6 @@ class FenToBoard : Constantes() {
             NO_ROW
         }
     }
-
-    fun stoneToFenChar(stone: Int): Char {
-        return if (stone >= MIN_STONE && stone <= MAX_STONE) {
-            fenChars.get(stone - MIN_STONE)
-        } else {
-            '?'
-        }
-    } //    public static String getFEN(PositionB pos) {}
 
 
 }
