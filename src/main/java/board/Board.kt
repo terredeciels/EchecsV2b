@@ -1,36 +1,6 @@
 package board
 
-import board.Constants.Companion.A1
-import board.Constants.Companion.A8
-import board.Constants.Companion.B1
-import board.Constants.Companion.B8
-import board.Constants.Companion.BOARD_SIZE
-import board.Constants.Companion.C1
-import board.Constants.Companion.C8
-import board.Constants.Companion.D1
-import board.Constants.Companion.D8
-import board.Constants.Companion.DARK
-import board.Constants.Companion.E1
-import board.Constants.Companion.E8
-import board.Constants.Companion.EMPTY
-import board.Constants.Companion.F1
-import board.Constants.Companion.F8
-import board.Constants.Companion.G1
-import board.Constants.Companion.G8
-import board.Constants.Companion.H1
-import board.Constants.Companion.H8
-import board.Constants.Companion.KING
-import board.Constants.Companion.KNIGHT
-import board.Constants.Companion.LIGHT
-import board.Constants.Companion.PAWN
-import board.Constants.Companion.QUEEN
-import board.Constants.Companion.ROOK
-import board.Constants.Companion.castle_mask
-import board.Constants.Companion.mailbox
-import board.Constants.Companion.mailbox64
-import board.Constants.Companion.offset
-import board.Constants.Companion.offsets
-import board.Constants.Companion.slide
+
 import java.lang.System.arraycopy
 import java.util.stream.IntStream.range
 
@@ -64,7 +34,7 @@ class UndoMove {
     var fifty: Int = 0 //public int hash;
 }
 
-class Board : Constants {
+class Board : Constantes {
 
     var color = IntArray(BOARD_SIZE)
     var piece = IntArray(BOARD_SIZE)
@@ -208,6 +178,7 @@ class Board : Constants {
                         if (color[to] == xside) genPush(c, to, 1)
                         continueDirection = false
                     }
+
                     else -> {
                         genPush(c, to, 0)
                         if (!slide[p]) continueDirection = false
@@ -226,6 +197,7 @@ class Board : Constants {
                 genPromote(from, to, bits)
                 return
             }
+
             else -> pseudomoves.add(Move(from, to, 0, bits))
         }
     }
@@ -249,7 +221,10 @@ class Board : Constants {
                 }
 
                 58 -> {
-                    if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isAttacked(C1, xside) || isAttacked(D1, xside)
+                    if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isAttacked(
+                            C1,
+                            xside
+                        ) || isAttacked(D1, xside)
                     ) return false
                     from = A1
                     to = D1
@@ -263,7 +238,10 @@ class Board : Constants {
                 }
 
                 2 -> {
-                    if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isAttacked(C8, xside) || isAttacked(D8, xside)
+                    if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isAttacked(
+                            C8,
+                            xside
+                        ) || isAttacked(D8, xside)
                     ) return false
                     from = A8
                     to = D8
@@ -294,6 +272,7 @@ class Board : Constants {
                 LIGHT -> m.to + 8
                 else -> m.to - 8
             }
+
             else -> -1
         }
 

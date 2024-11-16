@@ -2,7 +2,7 @@ package perft
 
 import board.Board
 import board.Move
-import perft.FenToBoard.toBoard
+
 import perft.PerftCompare.PerftResult
 
 object PerftSpeed {
@@ -27,7 +27,7 @@ object PerftSpeed {
         //voir https://www.chessprogramming.org/Perft_Results
         val f = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-        val board = toBoard(f)
+        val board = FenToBoard().toBoard(f)
         val max_depth = 6
         val t0 = System.nanoTime().toDouble()
         for (depth in 1..max_depth) {

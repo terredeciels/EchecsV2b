@@ -1,16 +1,20 @@
 package perft
 
 import board.Board
-import board.Constants
+import board.Constantes
 import board.Move
-import perft.FenToBoard.toBoard
 import java.io.BufferedReader
 import java.io.FileReader
 import java.io.IOException
+import kotlin.Throws
 
-object PerftCompare : Constants {
-    @Throws(IOException::class)
-    @JvmStatic
+
+fun main(args: Array<String>) {
+    val perftCompare = PerftCompare()
+    perftCompare.main(args)
+}
+class PerftCompare : Constantes() {
+
     fun main(args: Array<String>) {
         val maxDepth = 4
         val fileReader = FileReader("/Users/gilles/IdeaProjects/EchecsV2b/src/main/java/perft/perftsuite.epd")
@@ -30,7 +34,7 @@ object PerftCompare : Constants {
                     val entryParts = entry.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                     val perftResult = entryParts[1].toInt()
 
-                    val board = toBoard(fen)
+                    val board = FenToBoard().toBoard(fen)
 
                     val result = Perft.perft(board!!, i)
                     if (perftResult.toLong() == result.moveCount) {
@@ -76,3 +80,4 @@ object PerftCompare : Constants {
         }
     }
 }
+

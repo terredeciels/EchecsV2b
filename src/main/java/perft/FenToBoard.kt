@@ -1,13 +1,14 @@
 package perft
 
 import board.Board
+import board.Constantes
 
-import board.Constants
+import kotlin.Throws
 
-object FenToBoard : Constants {
+class FenToBoard : Constantes() {
     private var board: Board? = null
 
-    @JvmStatic
+
     fun toBoard(fen: String): Board? {
         board = Board()
         initFromFEN(fen, true)
@@ -33,13 +34,13 @@ object FenToBoard : Constants {
                 require(col + num <= 8) { "Malformatted fen string: too many pieces in rank at index $index: $ch" }
                 for (j in 0 until num) {
                     // int _case = coorToSqi(col, row);
-                    setStone(col, row, Constants.NO_STONE.toInt())
+                    setStone(col, row, NO_STONE.toInt())
 
                     col++
                 }
             } else {
                 val stone = fenCharToStone(ch)
-                require(stone != Constants.Companion.NO_STONE.toInt()) { "Malformatted fen string: illegal piece char: $ch" }
+                require(stone != NO_STONE.toInt()) { "Malformatted fen string: illegal piece char: $ch" }
                 //  int _case = coorToSqi(col, row);
                 setStone(col, row, stone)
                 col++
@@ -51,8 +52,8 @@ object FenToBoard : Constants {
         if (index + 1 < fen.length && fen[index] == ' ') {
             ch = fen[index + 1]
             when (ch) {
-                'w' -> setToPlay(Constants.Companion.LIGHT)
-                'b' -> setToPlay(Constants.Companion.DARK)
+                'w' -> setToPlay(LIGHT)
+                'b' -> setToPlay(DARK)
                 else -> throw IllegalArgumentException("Malformatted fen string: expected 'to play' as second field but found $ch")
             }
             index += 2
@@ -60,7 +61,7 @@ object FenToBoard : Constants {
         /*========== 3rd field : castles ==========*/
         if (index + 1 < fen.length && fen[index] == ' ') {
             index++
-            var castles: Int = Constants.Companion.NO_CASTLES
+            var castles: Int = NO_CASTLES
             if (fen[index] == '-') {
                 index++
             } else {
@@ -68,16 +69,16 @@ object FenToBoard : Constants {
                 while (index < fen.length && fen[index] != ' ') {
                     ch = fen[index]
                     if (ch == 'K') {
-                        castles = castles or Constants.Companion.WHITE_SHORT_CASTLE
+                        castles = castles or WHITE_SHORT_CASTLE
                         last = 0
                     } else if (ch == 'Q' && (!strict || last < 1)) {
-                        castles = castles or Constants.Companion.WHITE_LONG_CASTLE
+                        castles = castles or WHITE_LONG_CASTLE
                         last = 1
                     } else if (ch == 'k' && (!strict || last < 2)) {
-                        castles = castles or Constants.Companion.BLACK_SHORT_CASTLE
+                        castles = castles or BLACK_SHORT_CASTLE
                         last = 2
                     } else if (ch == 'q' && (!strict || last < 3)) {
-                        castles = castles or Constants.Companion.BLACK_LONG_CASTLE
+                        castles = castles or BLACK_LONG_CASTLE
                         last = 3
                     } else {
                         throw IllegalArgumentException("Malformatted fen string: illegal castles identifier or sequence $ch")
@@ -95,7 +96,7 @@ object FenToBoard : Constants {
         /*========== 4th field : ep square ==========*/
         if (index + 1 < fen.length && fen[index] == ' ') {
             index++
-            var sqiEP: Int = Constants.Companion.NO_SQUARE
+            var sqiEP: Int = NO_SQUARE
             if (fen[index] == '-') {
                 index++
             } else if (index + 2 < fen.length) {
@@ -120,7 +121,7 @@ object FenToBoard : Constants {
         /*========== 6th field : full move number ==========*/
         if (index + 1 < fen.length && fen[index] == ' ') {
             val i = 2 * (fen.substring(index + 1).toInt() - 1)
-            if (board!!.side == Constants.Companion.LIGHT) {
+            if (board!!.side == LIGHT) {
                 setPlyNumber(i)
             } else {
                 setPlyNumber(i + 1)
@@ -140,7 +141,7 @@ object FenToBoard : Constants {
     fun setToPlay(side: Int) {
         board!!.side = side
         board!!.xside =
-            if (board!!.side == Constants.Companion.LIGHT) Constants.Companion.DARK else Constants.Companion.LIGHT
+            if (board!!.side == LIGHT) DARK else LIGHT
     }
 
     //    int PAWN = 0, KNIGHT = 1, BISHOP = 2, ROOK = 3, QUEEN = 4, KING = 5;
@@ -156,7 +157,7 @@ object FenToBoard : Constants {
                 else
                     if (abs(stone) == 5) 0 else abs(stone)
         board!!.color[_case] =
-            if (stone < 0) Constants.Companion.LIGHT else if (stone > 0) Constants.Companion.DARK else Constants.Companion.EMPTY
+            if (stone < 0) LIGHT else if (stone > 0) DARK else EMPTY
 
 
         //        board.pieces[_case].code
@@ -172,25 +173,25 @@ object FenToBoard : Constants {
     }
 
     fun fenCharToStone(ch: Char): Int {
-        for (stone in Constants.MIN_STONE..Constants.MAX_STONE) {
-            if (Constants.fenChars.get(stone - Constants.Companion.MIN_STONE) == ch) {
+        for (stone in MIN_STONE..MAX_STONE) {
+            if (fenChars.get(stone - MIN_STONE) == ch) {
                 return stone
             }
         }
-        return Constants.Companion.NO_STONE.toInt()
+        return NO_STONE.toInt()
     }
 
     fun strToSqi(s: String?): Int {
         if (s == null || s.length != 2) {
-            return Constants.Companion.NO_SQUARE
+            return NO_SQUARE
         }
         val col = charToCol(s[0])
-        if (col == Constants.Companion.NO_COL) {
-            return Constants.Companion.NO_SQUARE
+        if (col == NO_COL) {
+            return NO_SQUARE
         }
         val row = charToRow(s[1])
-        if (row == Constants.Companion.NO_ROW) {
-            return Constants.Companion.NO_SQUARE
+        if (row == NO_ROW) {
+            return NO_SQUARE
         }
         return row * 8 + col
     }
@@ -199,7 +200,7 @@ object FenToBoard : Constants {
         return if ((ch >= 'a') && (ch <= 'h')) {
             ch.code - 'a'.code
         } else {
-            Constants.NO_COL
+            NO_COL
         }
     }
 
@@ -207,15 +208,17 @@ object FenToBoard : Constants {
         return if ((ch >= '1') && (ch <= '8')) {
             ch.code - '1'.code
         } else {
-            Constants.NO_ROW
+            NO_ROW
         }
     }
 
     fun stoneToFenChar(stone: Int): Char {
-        return if (stone >= Constants.Companion.MIN_STONE && stone <= Constants.Companion.MAX_STONE) {
-            Constants.Companion.fenChars.get(stone - Constants.Companion.MIN_STONE)
+        return if (stone >= MIN_STONE && stone <= MAX_STONE) {
+            fenChars.get(stone - MIN_STONE)
         } else {
             '?'
         }
     } //    public static String getFEN(PositionB pos) {}
+
+
 }
