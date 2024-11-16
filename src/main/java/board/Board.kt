@@ -185,14 +185,19 @@ class Board : Constantes {
     }
 
     fun makemove(m: Move): Boolean {
+        // Gérer le roque (si applicable)
         if (m.bits and 2 != 0) {
             val from: Int
             val to: Int
 
             if (inCheck(this, side)) return false
+
             when (m.to) {
                 G1 -> {
-                    if (color[F1] != EMPTY || color[G1] != EMPTY || isAttacked(F1, xside) || isAttacked(G1, xside)
+                    if (color[F1] != EMPTY || color[G1] != EMPTY || isAttacked(F1, xside) || isAttacked(
+                            G1,
+                            xside
+                        )
                     ) return false
                     from = H1
                     to = F1
@@ -209,7 +214,10 @@ class Board : Constantes {
                 }
 
                 G8 -> {
-                    if (color[F8] != EMPTY || color[G8] != EMPTY || isAttacked(F8, xside) || isAttacked(G8, xside)
+                    if (color[F8] != EMPTY || color[G8] != EMPTY || isAttacked(F8, xside) || isAttacked(
+                            G8,
+                            xside
+                        )
                     ) return false
                     from = H8
                     to = F8
@@ -230,50 +238,48 @@ class Board : Constantes {
                     to = -1
                 }
             }
-            color[to] = color[from]
-            piece[to] = piece[from]
-            color[from] = EMPTY
-            piece[from] = EMPTY
+
+            if (from != -1 && to != -1) {
+                updateSquare(color, piece, to, side, ROOK)
+                clearSquare(color, piece, from)
+            }
         }
 
-        /* back up information, so we can take the move back later. */
+        // Sauvegarder les informations pour un éventuel retour en arrière
         um.mov = m
-        um.capture = piece[m.to.toInt()]
+        um.capture = piece[m.to]
         um.castle = castle
         um.ep = ep
         um.fifty = fifty
 
+        // Mettre à jour les drapeaux de roque
         castle = castle and (castle_mask[m.from.toInt()] and castle_mask[m.to.toInt()])
 
-        ep = when {
-            m.bits and 8 != 0 -> when (side) {
-                LIGHT -> m.to + 8
-                else -> m.to - 8
-            }
-
-            else -> -1
+        // Mettre à jour le pion passant (si applicable)
+        ep = if (m.bits and 8 != 0) {
+            if (side == LIGHT) m.to + 8 else m.to - 8
+        } else {
+            -1
         }
 
-        fifty = when {
-            m.bits and 17 != 0 -> 0
-            else -> fifty + 1
+        // Réinitialiser la règle des 50 coups ou l'incrémenter
+        fifty = if (m.bits and 17 != 0) 0 else fifty + 1
+
+        // Déplacer la pièce
+        updateSquare(color, piece, m.to, side, if ((m.bits and 32) != 0) m.promote else piece[m.from])
+        clearSquare(color, piece, m.from)
+
+        // Gérer la prise en passant (si applicable)
+        if (m.bits and 4 != 0) {
+            val offset = if (side == LIGHT) 8 else -8
+            clearSquare(color, piece, m.to + offset)
         }
 
-        /* move the piece */
-        color[m.to] = side
-        piece[m.to] = if ((m.bits and 32) != 0) m.promote else piece[m.from]
-        color[m.from] = EMPTY
-        piece[m.from] = EMPTY
-
-        /* erase the pawn if this is an en passant move */
-        if ((m.bits and 4) != 0) {
-            val offset = if ((side == LIGHT)) 8 else -8
-            piece[m.to + offset] = EMPTY
-            color[m.to + offset] = piece[m.to + offset]
-        }
-
+        // Passer au camp suivant
         side = side xor 1
         xside = xside xor 1
+
+        // Vérifier si le roi adverse est en échec après le coup
         if (inCheck(this, xside)) {
             takeback()
             return false
@@ -297,54 +303,32 @@ class Board : Constantes {
         side = side xor 1
         xside = xside xor 1
 
-// Extraire les données de mouvement
+        // Extraire les données de mouvement
         val m = um.mov
         castle = um.castle
         ep = um.ep
         fifty = um.fifty
 
-// Mettre à jour la position de départ
-        color[m.from] = side
-        piece[m.from] = when {
-            (m.bits and 32) != 0 -> PAWN
-            else -> piece[m.to]
+        // Mettre à jour la position de départ
+        updateSquare(color, piece, m.from, side, if ((m.bits and 32) != 0) PAWN else piece[m.to])
+
+        // Mettre à jour la position de destination en fonction de la capture
+        if (um.capture == EMPTY) {
+            clearSquare(color, piece, m.to)
+        } else {
+            updateSquare(color, piece, m.to, xside, um.capture)
         }
 
-// Mettre à jour la position de destination en fonction de la capture
-        when (um.capture) {
-            EMPTY -> {
-                color[m.to] = EMPTY
-                piece[m.to] = EMPTY
-            }
-
-            else -> {
-                color[m.to] = xside
-                piece[m.to] = um.capture
-            }
+        // Gérer les roques (si le mouvement était un roque)
+        if (m.bits and 2 != 0) {
+            val (rookFrom, rookTo) = getRookMovePositions(m.to)
+            updateRookForCastling(color, piece, rookFrom, rookTo, side)
         }
 
-        when {
-            m.bits and 2 != 0 -> {
-                val (from, to) = getRookMovePositions(m.to)
-
-                if (from != -1 && to != -1) {
-                    color[to] = side
-                    piece[to] = ROOK
-                    color[from] = EMPTY
-                    piece[from] = EMPTY
-                }
-            }
-        }
-
-
-        when {
-            m.bits and 4 != 0 -> if (side == LIGHT) {
-                color[m.to + 8] = xside
-                piece[m.to + 8] = PAWN
-            } else {
-                color[m.to - 8] = xside
-                piece[m.to - 8] = PAWN
-            }
+        // Gérer la prise en passant (si applicable)
+        if (m.bits and 4 != 0) {
+            val offset = if (side == LIGHT) 8 else -8
+            updateSquare(color, piece, m.to + offset, xside, PAWN)
         }
     }
 
@@ -353,4 +337,29 @@ class Board : Constantes {
             .filter { i: Int -> board.piece[i] == KING && board.color[i] == s }
             .anyMatch { i: Int -> with(board) { isAttacked(i, s xor 1) } }
     }
+
+    fun updateSquare(colorArray: IntArray, pieceArray: IntArray, square: Int, newColor: Int, newPiece: Int) {
+        colorArray[square] = newColor
+        pieceArray[square] = newPiece
+    }
+
+    fun clearSquare(colorArray: IntArray, pieceArray: IntArray, square: Int) {
+        colorArray[square] = EMPTY
+        pieceArray[square] = EMPTY
+    }
+
+    fun updateRookForCastling(
+        colorArray: IntArray,
+        pieceArray: IntArray,
+        from: Int,
+        to: Int,
+        side: Int
+    ) {
+        if (from != -1 && to != -1) {
+            updateSquare(colorArray, pieceArray, to, side, ROOK)
+            clearSquare(colorArray, pieceArray, from)
+        }
+    }
+
+
 }
