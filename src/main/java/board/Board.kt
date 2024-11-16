@@ -6,32 +6,14 @@ import java.util.stream.IntStream.range
 
 class Piece
 
-/**
- * 1	capture 2	castle 4	en passant capture 8	pushing a pawn 2 squares 16	pawn
- * move 32	promote
- */
-class Move {
-    var from: Int = 0
-    var to: Int = 0
-    var promote: Int = 0
-    var bits: Int = 0
-
-    internal constructor()
-
-    internal constructor(f: Int, t: Int, p: Int, b: Int) {
-        from = f
-        to = t
-        promote = p
-        bits = b
-    }
-}
+class Move(var from: Int = 0, var to: Int = 0, var promote: Int = 0, var bits: Int = 0)
 
 class UndoMove {
-    var mov: Move = Move()
-    var capture: Int = 0
-    var castle: Int = 0
-    var ep: Int = 0
-    var fifty: Int = 0 //public int hash;
+    var mov = Move()
+    var capture = 0
+    var castle = 0
+    var ep = 0
+    var fifty = 0 //public int hash;
 }
 
 class Board : Constantes {
