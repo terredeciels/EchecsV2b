@@ -33,7 +33,7 @@ class Board : Constantes {
 
 
     constructor() {
-        initPieces()
+        (0 until BOARD_SIZE).forEach { c -> pieces[c] = Piece() }
     }
 
     constructor(board: Board) {
@@ -46,10 +46,6 @@ class Board : Constantes {
         fifty = board.fifty
         pseudomoves = ArrayList()
         um = UndoMove()
-    }
-
-    fun initPieces() {
-        (0 until BOARD_SIZE).forEach { c -> pieces[c] = Piece() }
     }
 
     fun isAttacked(sqTarget: Int, side: Int): Boolean {
@@ -195,14 +191,14 @@ class Board : Constantes {
 
             if (inCheck(this, side)) return false
             when (m.to) {
-                62 -> {
+                G1 -> {
                     if (color[F1] != EMPTY || color[G1] != EMPTY || isAttacked(F1, xside) || isAttacked(G1, xside)
                     ) return false
                     from = H1
                     to = F1
                 }
 
-                58 -> {
+                C1 -> {
                     if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isAttacked(
                             C1,
                             xside
@@ -212,14 +208,14 @@ class Board : Constantes {
                     to = D1
                 }
 
-                6 -> {
+                G8 -> {
                     if (color[F8] != EMPTY || color[G8] != EMPTY || isAttacked(F8, xside) || isAttacked(G8, xside)
                     ) return false
                     from = H8
                     to = F8
                 }
 
-                2 -> {
+                C8 -> {
                     if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isAttacked(
                             C8,
                             xside
