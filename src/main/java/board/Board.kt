@@ -53,14 +53,20 @@ class Board : Constantes {
             .filter { sq: Int -> color[sq] == side }
             .anyMatch { sq: Int -> isAttackedByPiece(sq, sqTarget, piece[sq], side) }
     }
+    fun anyMatchingOffsets(
+        offsets: IntRange,
+        checkCondition: (Int) -> Boolean
+    ): Boolean {
+        return offsets.any(checkCondition)
+    }
 
     fun isAttackedByPiece(sq: Int, sqTarget: Int, pieceType: Int, side: Int): Boolean {
         return when (pieceType) {
             PAWN -> isPawnAttacked(sq, sqTarget, side)
-            else -> range(0, offsets[pieceType])
-                .anyMatch { isAttackedByOffset(sq, sqTarget, pieceType, it) }
+            else -> anyMatchingOffsets(0 until offsets[pieceType]) { isAttackedByOffset(sq, sqTarget, pieceType, it) }
         }
     }
+
 
     fun isPawnAttacked(sq: Int, sqTarget: Int, side: Int): Boolean {
         val offset = if (side == LIGHT) -8 else 8
@@ -167,22 +173,30 @@ class Board : Constantes {
     }
 
     fun genPush(from: Int, to: Int, bits: Int) {
-        when {
-            (bits and 16) != 0 && when {
-                side == LIGHT -> to <= H8
-                else -> to >= A1
-            } -> {
-                genPromote(from, to, bits)
-                return
-            }
+        if (isPromotionMove(to, bits)) {
+            generatePromotions(from, to, bits, pseudomoves)
+        } else {
+            pseudomoves.add(Move(from, to, 0, bits))
+        }
+    }
 
-            else -> pseudomoves.add(Move(from, to, 0, bits))
+    private fun isPromotionMove(to: Int, bits: Int): Boolean {
+        return (bits and 16) != 0 && when (side) {
+            LIGHT -> to <= H8
+            DARK -> to >= A1
+            else -> false
+        }
+    }
+    fun generatePromotions(from: Int, to: Int, bits: Int, movesList: MutableList<Move>) {
+        (KNIGHT..QUEEN).forEach { promotionPiece ->
+            movesList.add(Move(from, to, promotionPiece, (bits or 32)))
         }
     }
 
     fun genPromote(from: Int, to: Int, bits: Int) {
-        (KNIGHT..QUEEN).forEach { i -> with(pseudomoves) { add(Move(from, to, i, (bits or 32))) } }
+        generatePromotions(from, to, bits, pseudomoves)
     }
+
 
     fun makemove(m: Move): Boolean {
         // Gérer le roque (si applicable)
@@ -239,9 +253,11 @@ class Board : Constantes {
                 }
             }
 
-            if (from != -1 && to != -1) {
-                updateSquare(color, piece, to, side, ROOK)
-                clearSquare(color, piece, from)
+            when {
+                from != -1 && to != -1 -> {
+                    updateSquare(color, piece, to, side, ROOK)
+                    clearSquare(color, piece, from)
+                }
             }
         }
 
@@ -280,12 +296,14 @@ class Board : Constantes {
         xside = xside xor 1
 
         // Vérifier si le roi adverse est en échec après le coup
-        if (inCheck(this, xside)) {
-            takeback()
-            return false
-        }
+        when {
+            inCheck(this, xside) -> {
+                takeback()
+                return false
+            }
 
-        return true
+            else -> return true
+        }
     }
 
     fun getRookMovePositions(mTo: Int): Pair<Int, Int> {
@@ -313,22 +331,22 @@ class Board : Constantes {
         updateSquare(color, piece, m.from, side, if ((m.bits and 32) != 0) PAWN else piece[m.to])
 
         // Mettre à jour la position de destination en fonction de la capture
-        if (um.capture == EMPTY) {
-            clearSquare(color, piece, m.to)
-        } else {
-            updateSquare(color, piece, m.to, xside, um.capture)
+        when (um.capture) {
+            EMPTY -> clearSquare(color, piece, m.to)
+            else -> updateSquare(color, piece, m.to, xside, um.capture)
         }
 
         // Gérer les roques (si le mouvement était un roque)
-        if (m.bits and 2 != 0) {
-            val (rookFrom, rookTo) = getRookMovePositions(m.to)
-            updateRookForCastling(color, piece, rookFrom, rookTo, side)
-        }
+        when {
+            m.bits and 2 != 0 -> {
+                val (rookFrom, rookTo) = getRookMovePositions(m.to)
+                updateRookForCastling(color, piece, rookFrom, rookTo, side)
+            }
 
-        // Gérer la prise en passant (si applicable)
-        if (m.bits and 4 != 0) {
-            val offset = if (side == LIGHT) 8 else -8
-            updateSquare(color, piece, m.to + offset, xside, PAWN)
+            m.bits and 4 != 0 -> {
+                val offset = if (side == LIGHT) 8 else -8
+                updateSquare(color, piece, m.to + offset, xside, PAWN)
+            }
         }
     }
 
@@ -348,18 +366,32 @@ class Board : Constantes {
         pieceArray[square] = EMPTY
     }
 
-    fun updateRookForCastling(
-        colorArray: IntArray,
-        pieceArray: IntArray,
-        from: Int,
-        to: Int,
-        side: Int
-    ) {
-        if (from != -1 && to != -1) {
-            updateSquare(colorArray, pieceArray, to, side, ROOK)
-            clearSquare(colorArray, pieceArray, from)
+    fun updateRookForCastling(colorArray: IntArray, pieceArray: IntArray, from: Int, to: Int, side: Int) {
+        when {
+            from != -1 && to != -1 -> {
+                updateSquare(colorArray, pieceArray, to, side, ROOK)
+                clearSquare(colorArray, pieceArray, from)
+            }
         }
     }
 
+    fun addMoveIfValid(
+        from: Int,
+        to: Int,
+        condition: Boolean,
+        bits: Int,
+        movesList: MutableList<Move>
+    ) {
+        if (condition) movesList.add(Move(from, to, 0, bits))
+    }
+    fun handleCastling(m: Move, colorArray: IntArray, pieceArray: IntArray, side: Int): Boolean {
+        val (rookFrom, rookTo) = getRookMovePositions(m.to)
+        if (rookFrom != -1 && rookTo != -1) {
+            updateSquare(colorArray, pieceArray, rookTo, side, ROOK)
+            clearSquare(colorArray, pieceArray, rookFrom)
+            return true
+        }
+        return false
+    }
 
 }
