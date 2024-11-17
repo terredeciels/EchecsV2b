@@ -84,10 +84,10 @@ class FenToBoard : Constantes() {
                     index++
                 }
             }
-            board!!.castle = if ((castles and 1) == 1) 2 else 0
-            board!!.castle += if ((castles and 2) == 2) 1 else 0
-            board!!.castle += if ((castles and 4) == 4) 8 else 0
-            board!!.castle += if ((castles and 8) == 8) 4 else 0
+            board!!.castleRights = if ((castles and 1) == 1) 2 else 0
+            board!!.castleRights += if ((castles and 2) == 2) 1 else 0
+            board!!.castleRights += if ((castles and 4) == 4) 8 else 0
+            board!!.castleRights += if ((castles and 8) == 8) 4 else 0
         } else {
             throw IllegalArgumentException("Malformatted fen string: expected castles at index $index")
         }
@@ -101,7 +101,7 @@ class FenToBoard : Constantes() {
                 sqiEP = strToSqi(fen.substring(index, index + 2))
                 index += 2
             }
-            board!!.ep = sqiEP
+            board!!.enPassantSquare = sqiEP
         } else {
             throw IllegalArgumentException("Malformatted fen string: expected ep square at index $index")
         }
@@ -112,14 +112,14 @@ class FenToBoard : Constantes() {
             while (index < fen.length && fen[index] != ' ') {
                 index++
             }
-            board!!.halfMoveClock = fen.substring(start, index).toInt()
+            board!!.halfMoveCount = fen.substring(start, index).toInt()
         } else {
             throw IllegalArgumentException("Malformatted fen string: expected half move clock at index $index")
         }
         /*========== 6th field : full move number ==========*/
         if (index + 1 < fen.length && fen[index] == ' ') {
             val i = 2 * (fen.substring(index + 1).toInt() - 1)
-            if (board!!.side == LIGHT) {
+            if (board!!.currentSide == LIGHT) {
                 setPlyNumber(i)
             } else {
                 setPlyNumber(i + 1)
@@ -133,20 +133,20 @@ class FenToBoard : Constantes() {
     }
 
     fun setPlyNumber(plyNumber: Int) {
-        board!!.plyNumber = plyNumber
+        board!!.currentPly = plyNumber
     }
 
     fun setToPlay(side: Int) {
-        board!!.side = side
-        board!!.xside =
-            if (board!!.side == LIGHT) DARK else LIGHT
+        board!!.currentSide = side
+        board!!.opponentSide =
+            if (board!!.currentSide == LIGHT) DARK else LIGHT
     }
 
     //    int PAWN = 0, KNIGHT = 1, BISHOP = 2, ROOK = 3, QUEEN = 4, KING = 5;
     //    int EMPTY = 6;
     fun setStone(j: Int, i: Int, stone: Int) {
         val _case = 56 - 8 * i + j
-        board!!.piece[_case] =
+        board!!.squarePieces[_case] =
             if (abs(stone) == 0)
                 6
             else
@@ -154,7 +154,7 @@ class FenToBoard : Constantes() {
                     5
                 else
                     if (abs(stone) == 5) 0 else abs(stone)
-        board!!.color[_case] =
+        board!!.squareColors[_case] =
             if (stone < 0) LIGHT else if (stone > 0) DARK else EMPTY
 
 

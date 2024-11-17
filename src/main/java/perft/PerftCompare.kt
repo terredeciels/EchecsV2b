@@ -67,11 +67,11 @@ class PerftCompare : Constantes() {
             }
 
             board.generateMoves()
-            val moves: List<Move> = board.pseudomoves
+            val moves: List<Move> = board.moveList
             for (move in moves) {
                 if (board.makeMove(move)) {
                     val subPerft = perft(Board(board), depth - 1)
-                    board.takeback()
+                    board.undoMove()
                     result.moveCount += subPerft.moveCount
                 }
             }
