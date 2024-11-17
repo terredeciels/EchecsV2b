@@ -46,18 +46,18 @@ class Board : Constantes {
         um = UndoMove()
     }
 
-    fun isAttacked(sqTarget: Int, side: Int): Boolean {
+    fun isSquareAttacked(sqTarget: Int, side: Int): Boolean {
         return range(0, BOARD_SIZE)
             .filter { sq: Int -> color[sq] == side }
-            .anyMatch { sq: Int -> isAttackedByPiece(sq, sqTarget, piece[sq], side) }
+            .anyMatch { sq: Int -> pieceAttacksSquare(sq, sqTarget, piece[sq], side) }
     }
 
-    fun anyMatchingOffsets(offsets: IntRange, checkCondition: (Int) -> Boolean) = offsets.any(checkCondition)
+    fun hasMatchingOffset(offsets: IntRange, checkCondition: (Int) -> Boolean) = offsets.any(checkCondition)
 
-    fun isAttackedByPiece(sq: Int, sqTarget: Int, pieceType: Int, side: Int): Boolean {
+    fun pieceAttacksSquare(sq: Int, sqTarget: Int, pieceType: Int, side: Int): Boolean {
         return when (pieceType) {
             PAWN -> isPawnAttacked(sq, sqTarget, side)
-            else -> anyMatchingOffsets(0 until offsets[pieceType]) { isAttackedByOffset(sq, sqTarget, pieceType, it) }
+            else -> hasMatchingOffset(0 until offsets[pieceType]) { attackViaOffset(sq, sqTarget, pieceType, it) }
         }
     }
 
@@ -67,7 +67,7 @@ class Board : Constantes {
                 (sq and 7) != 7 && sq + offset + 1 == sqTarget
     }
 
-    fun isAttackedByOffset(sq: Int, sqTarget: Int, pieceType: Int, offsetIndex: Int): Boolean {
+    fun attackViaOffset(sq: Int, sqTarget: Int, pieceType: Int, offsetIndex: Int): Boolean {
         var sqIndex = sq
         while (mailbox[mailbox64[sqIndex] + offset[pieceType][offsetIndex]].also { sqIndex = it } != -1) {
             if (sqIndex == sqTarget) return true
@@ -76,29 +76,29 @@ class Board : Constantes {
         return false
     }
 
-    fun gen() {
+    fun generateMoves() {
         range(0, BOARD_SIZE)
             .filter { c: Int -> color[c] == side }
             .forEach { c: Int ->
-                if (piece[c] == PAWN) genPawn(c)
-                else gen(c)
+                if (piece[c] == PAWN) generatePawnMoves(c)
+                else generateMoves(c)
             }
-        genCastles()
-        genEnpassant()
+        generateCastlingMoves()
+        generateEnPassantMoves()
     }
 
-    fun genPawn(c: Int) {
+    fun generatePawnMoves(c: Int) {
         val offset = if (side == LIGHT) -8 else 8
         (side xor 1).also { generatePawnCaptures(c, offset, it) }
 
         // Génération du mouvement simple du pion vers l'avant
         when {
             EMPTY == color[c + offset] -> {
-                genPush(c, c + offset, 16)
+                addMove(c, c + offset, 16)
                 // Génération du double mouvement initial du pion
                 when {
-                    isPawnStartingRank(c) -> if (EMPTY == color[c + (offset shl 1)])
-                        genPush(c, c + (offset shl 1), 24)
+                    isPawnOnStartRank(c) -> if (EMPTY == color[c + (offset shl 1)])
+                        addMove(c, c + (offset shl 1), 24)
                 }
             }
         }
@@ -108,15 +108,16 @@ class Board : Constantes {
         val leftCapture = c + offset - 1
         val rightCapture = c + offset + 1
 
-        if (c and 7 != 0 && color[leftCapture] == oppositeColor) genPush(c, leftCapture, 17)
-        if (c and 7 != 7 && color[rightCapture] == oppositeColor) genPush(c, rightCapture, 17)
+        if (c and 7 != 0 && color[leftCapture] == oppositeColor) addMove(c, leftCapture, 17)
+        if (c and 7 != 7 && color[rightCapture] == oppositeColor) addMove(c, rightCapture, 17)
     }
 
-    fun isPawnStartingRank(c: Int): Boolean {
+    fun isPawnOnStartRank(c: Int): Boolean {
         return side == LIGHT && c in 48..55 || side == DARK && c in 8..15
     }
 
-    fun genEnpassant() {
+
+    fun generateEnPassantMoves() {
         when {
             ep != -1 -> {
                 val offsets = if (side == LIGHT) listOf(7, 9) else listOf(-9, -7)
@@ -124,23 +125,23 @@ class Board : Constantes {
                 offsets.forEach { offset ->
                     val newEp = ep + offset
                     if (ep and 7 != (if (offset == offsets[0]) 0 else 7))
-                        if (color[newEp] == targetColor && piece[newEp] == PAWN) genPush(newEp, ep, 21)
+                        if (color[newEp] == targetColor && piece[newEp] == PAWN) addMove(newEp, ep, 21)
                 }
             }
         }
 
     }
 
-    fun genCastles() {
+    fun generateCastlingMoves() {
 
         val (kingStart, kingsideTarget, towersideTarget) = if (side == LIGHT) Triple(E1, G1, C1) else Triple(E8, G8, C8)
 
-        if ((castle and (if (side == LIGHT) 1 else 4)) != 0) genPush(kingStart, kingsideTarget, 2)
-        if ((castle and (if (side == LIGHT) 2 else 8)) != 0) genPush(kingStart, towersideTarget, 2)
+        if ((castle and (if (side == LIGHT) 1 else 4)) != 0) addMove(kingStart, kingsideTarget, 2)
+        if ((castle and (if (side == LIGHT) 2 else 8)) != 0) addMove(kingStart, towersideTarget, 2)
 
     }
 
-    fun gen(c: Int) {
+    fun generateMoves(c: Int) {
 
         val p = piece[c]
 
@@ -152,12 +153,12 @@ class Board : Constantes {
                 when {
                     to == -1 -> continueDirection = false
                     color[to] != EMPTY -> {
-                        if (color[to] == xside) genPush(c, to, 1)
+                        if (color[to] == xside) addMove(c, to, 1)
                         continueDirection = false
                     }
 
                     else -> {
-                        genPush(c, to, 0)
+                        addMove(c, to, 0)
                         if (!slide[p]) continueDirection = false
                     }
                 }
@@ -165,15 +166,15 @@ class Board : Constantes {
         }
     }
 
-    fun genPush(from: Int, to: Int, bits: Int) {
-        if (isPromotionMove(to, bits)) {
-            generatePromotions(from, to, bits, pseudomoves)
+    fun addMove(from: Int, to: Int, bits: Int) {
+        if (isPromotion(to, bits)) {
+            addPromotionMoves(from, to, bits, pseudomoves)
         } else {
             pseudomoves.add(Move(from, to, 0, bits))
         }
     }
 
-    private fun isPromotionMove(to: Int, bits: Int): Boolean {
+    private fun isPromotion(to: Int, bits: Int): Boolean {
         return (bits and 16) != 0 && when (side) {
             LIGHT -> to <= H8
             DARK -> to >= A1
@@ -181,23 +182,23 @@ class Board : Constantes {
         }
     }
 
-    fun generatePromotions(from: Int, to: Int, bits: Int, movesList: MutableList<Move>) {
+    fun addPromotionMoves(from: Int, to: Int, bits: Int, movesList: MutableList<Move>) {
         (KNIGHT..QUEEN).forEach { promotionPiece ->
             movesList.add(Move(from, to, promotionPiece, (bits or 32)))
         }
     }
 
-    fun makemove(m: Move): Boolean {
+    fun makeMove(m: Move): Boolean {
         // Gérer le roque (si applicable)
         if (m.bits and 2 != 0) {
             val from: Int
             val to: Int
 
-            if (inCheck(this, side)) return false
+            if (isInCheck(this, side)) return false
 
             when (m.to) {
                 G1 -> {
-                    if (color[F1] != EMPTY || color[G1] != EMPTY || isAttacked(F1, xside) || isAttacked(
+                    if (color[F1] != EMPTY || color[G1] != EMPTY || isSquareAttacked(F1, xside) || isSquareAttacked(
                             G1,
                             xside
                         )
@@ -207,17 +208,17 @@ class Board : Constantes {
                 }
 
                 C1 -> {
-                    if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isAttacked(
+                    if (color[B1] != EMPTY || color[C1] != EMPTY || color[D1] != EMPTY || isSquareAttacked(
                             C1,
                             xside
-                        ) || isAttacked(D1, xside)
+                        ) || isSquareAttacked(D1, xside)
                     ) return false
                     from = A1
                     to = D1
                 }
 
                 G8 -> {
-                    if (color[F8] != EMPTY || color[G8] != EMPTY || isAttacked(F8, xside) || isAttacked(
+                    if (color[F8] != EMPTY || color[G8] != EMPTY || isSquareAttacked(F8, xside) || isSquareAttacked(
                             G8,
                             xside
                         )
@@ -227,10 +228,10 @@ class Board : Constantes {
                 }
 
                 C8 -> {
-                    if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isAttacked(
+                    if (color[B8] != EMPTY || color[C8] != EMPTY || color[D8] != EMPTY || isSquareAttacked(
                             C8,
                             xside
-                        ) || isAttacked(D8, xside)
+                        ) || isSquareAttacked(D8, xside)
                     ) return false
                     from = A8
                     to = D8
@@ -244,7 +245,7 @@ class Board : Constantes {
 
             when {
                 from != -1 && to != -1 -> {
-                    updateSquare(color, piece, to, side, ROOK)
+                    setSquare(color, piece, to, side, ROOK)
                     clearSquare(color, piece, from)
                 }
             }
@@ -271,7 +272,7 @@ class Board : Constantes {
         fifty = if (m.bits and 17 != 0) 0 else fifty + 1
 
         // Déplacer la pièce
-        updateSquare(color, piece, m.to, side, if ((m.bits and 32) != 0) m.promote else piece[m.from])
+        setSquare(color, piece, m.to, side, if ((m.bits and 32) != 0) m.promote else piece[m.from])
         clearSquare(color, piece, m.from)
 
         // Gérer la prise en passant (si applicable)
@@ -286,7 +287,7 @@ class Board : Constantes {
 
         // Vérifier si le roi adverse est en échec après le coup
         when {
-            inCheck(this, xside) -> {
+            isInCheck(this, xside) -> {
                 takeback()
                 return false
             }
@@ -295,7 +296,7 @@ class Board : Constantes {
         }
     }
 
-    fun getRookMovePositions(mTo: Int): Pair<Int, Int> {
+    fun rookMovePositions(mTo: Int): Pair<Int, Int> {
         return when (mTo) {
             62 -> F1 to H1
             58 -> D1 to A1
@@ -317,35 +318,35 @@ class Board : Constantes {
         fifty = um.fifty
 
         // Mettre à jour la position de départ
-        updateSquare(color, piece, m.from, side, if ((m.bits and 32) != 0) PAWN else piece[m.to])
+        setSquare(color, piece, m.from, side, if ((m.bits and 32) != 0) PAWN else piece[m.to])
 
         // Mettre à jour la position de destination en fonction de la capture
         when (um.capture) {
             EMPTY -> clearSquare(color, piece, m.to)
-            else -> updateSquare(color, piece, m.to, xside, um.capture)
+            else -> setSquare(color, piece, m.to, xside, um.capture)
         }
 
         // Gérer les roques (si le mouvement était un roque)
         when {
             m.bits and 2 != 0 -> {
-                val (rookFrom, rookTo) = getRookMovePositions(m.to)
-                updateRookForCastling(color, piece, rookFrom, rookTo, side)
+                val (rookFrom, rookTo) = rookMovePositions(m.to)
+                moveRookForCastling(color, piece, rookFrom, rookTo, side)
             }
 
             m.bits and 4 != 0 -> {
                 val offset = if (side == LIGHT) 8 else -8
-                updateSquare(color, piece, m.to + offset, xside, PAWN)
+                setSquare(color, piece, m.to + offset, xside, PAWN)
             }
         }
     }
 
-    fun inCheck(board: Board, s: Int): Boolean {
+    fun isInCheck(board: Board, s: Int): Boolean {
         return range(0, BOARD_SIZE)
             .filter { i: Int -> board.piece[i] == KING && board.color[i] == s }
-            .anyMatch { i: Int -> with(board) { isAttacked(i, s xor 1) } }
+            .anyMatch { i: Int -> with(board) { isSquareAttacked(i, s xor 1) } }
     }
 
-    fun updateSquare(colorArray: IntArray, pieceArray: IntArray, square: Int, newColor: Int, newPiece: Int) {
+    fun setSquare(colorArray: IntArray, pieceArray: IntArray, square: Int, newColor: Int, newPiece: Int) {
         colorArray[square] = newColor
         pieceArray[square] = newPiece
     }
@@ -355,10 +356,10 @@ class Board : Constantes {
         pieceArray[square] = EMPTY
     }
 
-    fun updateRookForCastling(colorArray: IntArray, pieceArray: IntArray, from: Int, to: Int, side: Int) {
+    fun moveRookForCastling(colorArray: IntArray, pieceArray: IntArray, from: Int, to: Int, side: Int) {
         when {
             from != -1 && to != -1 -> {
-                updateSquare(colorArray, pieceArray, to, side, ROOK)
+                setSquare(colorArray, pieceArray, to, side, ROOK)
                 clearSquare(colorArray, pieceArray, from)
             }
         }
