@@ -112,16 +112,8 @@ class Board : Constantes {
         val leftCapture = c + offset - 1
         val rightCapture = c + offset + 1
 
-        if (c and RIGHT_DIAGONAL_OFFSET != 0 && squareColors[leftCapture] == oppositeColor) addMove(
-            c,
-            leftCapture,
-            PROMOTION_MOVE_FLAG
-        )
-        if (c and RIGHT_DIAGONAL_OFFSET != RIGHT_DIAGONAL_OFFSET && squareColors[rightCapture] == oppositeColor) addMove(
-            c,
-            rightCapture,
-            PROMOTION_MOVE_FLAG
-        )
+        if (c and RIGHT_DIAGONAL_OFFSET != 0 && squareColors[leftCapture] == oppositeColor) addMove(c, leftCapture, PROMOTION_MOVE_FLAG)
+        if (c and RIGHT_DIAGONAL_OFFSET != RIGHT_DIAGONAL_OFFSET && squareColors[rightCapture] == oppositeColor) addMove(c, rightCapture, PROMOTION_MOVE_FLAG)
     }
 
     fun isPawnOnStartRank(c: Int): Boolean {
@@ -131,10 +123,7 @@ class Board : Constantes {
     fun generateEnPassantMoves() {
         when {
             enPassantSquare != INVALID_INDEX -> {
-                val offsets = if (currentSide == LIGHT) listOf(RIGHT_DIAGONAL_OFFSET, 9) else listOf(
-                    UP_LEFT_OFFSET,
-                    LEFT_DIAGONAL_OFFSET
-                )
+                val offsets = if (currentSide == LIGHT) listOf(RIGHT_DIAGONAL_OFFSET, 9) else listOf(UP_LEFT_OFFSET, LEFT_DIAGONAL_OFFSET)
                 val targetColor = if (currentSide == LIGHT) LIGHT else DARK
                 offsets.forEach { offset ->
                     val newEp = enPassantSquare + offset
@@ -158,16 +147,8 @@ class Board : Constantes {
             C8
         )
 
-        if ((castleRights and (if (currentSide == LIGHT) 1 else 4)) != 0) addMove(
-            kingStart,
-            kingsideTarget,
-            CASTLE_KINGSIDE_FLAG
-        )
-        if ((castleRights and (if (currentSide == LIGHT) CASTLE_KINGSIDE_FLAG else DOWN_OFFSET)) != 0) addMove(
-            kingStart,
-            towersideTarget,
-            CASTLE_KINGSIDE_FLAG
-        )
+        if ((castleRights and (if (currentSide == LIGHT) 1 else 4)) != 0) addMove(kingStart, kingsideTarget, CASTLE_KINGSIDE_FLAG)
+        if ((castleRights and (if (currentSide == LIGHT) CASTLE_KINGSIDE_FLAG else DOWN_OFFSET)) != 0) addMove(kingStart, towersideTarget, CASTLE_KINGSIDE_FLAG)
 
     }
 

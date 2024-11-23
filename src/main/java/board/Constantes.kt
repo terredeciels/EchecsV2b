@@ -2,17 +2,17 @@ package board
 
 
 open class Constantes {
-    val INVALID_INDEX = -1
-    val LEFT_DIAGONAL_OFFSET = -7
-    val UP_OFFSET = -8
-    val UP_LEFT_OFFSET = -9
-    val DOWN_OFFSET = 8
-    val RIGHT_DIAGONAL_OFFSET = 7
-    val PROMOTION_MOVE_FLAG = 17
-    val CASTLE_KINGSIDE_FLAG = 2
-    val CASTLE_QUEENSIDE_FLAG = 32
-    val FIFTY_MOVE_RULE = 50
-    val MAX_SQUARE_INDEX = 62
+     val INVALID_INDEX = -1
+     val LEFT_DIAGONAL_OFFSET = -7
+     val UP_OFFSET = -8
+     val UP_LEFT_OFFSET = -9
+     val DOWN_OFFSET = 8
+     val RIGHT_DIAGONAL_OFFSET = 7
+     val PROMOTION_MOVE_FLAG = 17
+     val CASTLE_KINGSIDE_FLAG = 2
+     val CASTLE_QUEENSIDE_FLAG = 32
+     val FIFTY_MOVE_RULE = 50
+     val MAX_SQUARE_INDEX = 62
 
 
     val BOARD_SIZE: Int = 64
