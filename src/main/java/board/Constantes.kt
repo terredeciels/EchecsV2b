@@ -36,7 +36,7 @@ open class Constantes {
     val G8: Int = 6
     val H8: Int = 7
 
-    val mailbox: IntArray = intArrayOf(
+    open val mailbox: IntArray = intArrayOf(
         -1,
         -1,
         -1,
@@ -159,7 +159,7 @@ open class Constantes {
         -1
     )
 
-    val mailbox64: IntArray = intArrayOf(
+    open val mailbox64: IntArray = intArrayOf(
         21,
         22,
         23,
@@ -232,7 +232,7 @@ open class Constantes {
     val QUEEN: Int = 4
     val KING: Int = 5
     val EMPTY: Int = 6
-    val slide: BooleanArray = booleanArrayOf(false, false, true, true, true, false)
+    open val slide: BooleanArray = booleanArrayOf(false, false, true, true, true, false)
     val offsets: IntArray = intArrayOf(0, 8, 4, 4, 8, 8)
     private val P: IntArray = intArrayOf(0, 0, 0, 0, 0, 0, 0, 0)
     private val C: IntArray = intArrayOf(-21, -19, -12, -8, 8, 12, 19, 21)
@@ -241,7 +241,7 @@ open class Constantes {
     private val D: IntArray = intArrayOf(-11, -10, -9, -1, 1, 9, 10, 11)
     private val R: IntArray = intArrayOf(-11, -10, -9, -1, 1, 9, 10, 11)
 
-    val offset: Array<IntArray> = arrayOf(P, C, F, T, D, R)
+    open val offset: Array<IntArray> = arrayOf(P, C, F, T, D, R)
 
 
     val castle_mask: IntArray = intArrayOf(
