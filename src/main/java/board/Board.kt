@@ -64,16 +64,16 @@ class Board : Constantes {
     }
 
     fun isPawnAttacked(sq: Int, sqTarget: Int, side: Int): Boolean {
-        val offset = if (side == LIGHT) -8 else 8
-        return ((sq and 7) != 0 && sq + offset - 1 == sqTarget) || // Vérifie la capture à gauche
-                ((sq and 7) != 7 && sq + offset + 1 == sqTarget)    // Vérifie la capture à droite
+        val offset = if (side == LIGHT) UP_OFFSET else DOWN_OFFSET
+        return ((sq and RIGHT_DIAGONAL_OFFSET) != 0 && sq + offset - 1 == sqTarget) || // Vérifie la capture à gauche
+                ((sq and RIGHT_DIAGONAL_OFFSET) != RIGHT_DIAGONAL_OFFSET && sq + offset + 1 == sqTarget)    // Vérifie la capture à droite
     }
 
     fun attackViaOffset(sq: Int, sqTarget: Int, pieceType: Int, offsetIndex: Int): Boolean {
         var currentSquare = sq
         while (true) {
             currentSquare = mailbox[mailbox64[currentSquare] + offset[pieceType][offsetIndex]]
-            if (currentSquare == -1) break // Hors des limites du plateau
+            if (currentSquare == INVALID_INDEX) break // Hors des limites du plateau
             if (currentSquare == sqTarget) return true
             if (squareColors[currentSquare] != EMPTY || !slide[pieceType]) break // Obstacle ou pièce non glissante
         }
@@ -92,7 +92,7 @@ class Board : Constantes {
     }
 
     fun generatePawnMoves(c: Int) {
-        val offset = if (currentSide == LIGHT) -8 else 8
+        val offset = if (currentSide == LIGHT) UP_OFFSET else DOWN_OFFSET
         (currentSide xor 1).also { generatePawnCaptures(c, offset, it) }
 
         // Génération du mouvement simple du pion vers l'avant
@@ -112,8 +112,16 @@ class Board : Constantes {
         val leftCapture = c + offset - 1
         val rightCapture = c + offset + 1
 
-        if (c and 7 != 0 && squareColors[leftCapture] == oppositeColor) addMove(c, leftCapture, 17)
-        if (c and 7 != 7 && squareColors[rightCapture] == oppositeColor) addMove(c, rightCapture, 17)
+        if (c and RIGHT_DIAGONAL_OFFSET != 0 && squareColors[leftCapture] == oppositeColor) addMove(
+            c,
+            leftCapture,
+            PROMOTION_MOVE_FLAG
+        )
+        if (c and RIGHT_DIAGONAL_OFFSET != RIGHT_DIAGONAL_OFFSET && squareColors[rightCapture] == oppositeColor) addMove(
+            c,
+            rightCapture,
+            PROMOTION_MOVE_FLAG
+        )
     }
 
     fun isPawnOnStartRank(c: Int): Boolean {
@@ -122,12 +130,15 @@ class Board : Constantes {
 
     fun generateEnPassantMoves() {
         when {
-            enPassantSquare != -1 -> {
-                val offsets = if (currentSide == LIGHT) listOf(7, 9) else listOf(-9, -7)
+            enPassantSquare != INVALID_INDEX -> {
+                val offsets = if (currentSide == LIGHT) listOf(RIGHT_DIAGONAL_OFFSET, 9) else listOf(
+                    UP_LEFT_OFFSET,
+                    LEFT_DIAGONAL_OFFSET
+                )
                 val targetColor = if (currentSide == LIGHT) LIGHT else DARK
                 offsets.forEach { offset ->
                     val newEp = enPassantSquare + offset
-                    if (enPassantSquare and 7 != (if (offset == offsets[0]) 0 else 7))
+                    if (enPassantSquare and RIGHT_DIAGONAL_OFFSET != (if (offset == offsets[0]) 0 else RIGHT_DIAGONAL_OFFSET))
                         if (squareColors[newEp] == targetColor && squarePieces[newEp] == PAWN) addMove(
                             newEp,
                             enPassantSquare,
@@ -147,8 +158,16 @@ class Board : Constantes {
             C8
         )
 
-        if ((castleRights and (if (currentSide == LIGHT) 1 else 4)) != 0) addMove(kingStart, kingsideTarget, 2)
-        if ((castleRights and (if (currentSide == LIGHT) 2 else 8)) != 0) addMove(kingStart, towersideTarget, 2)
+        if ((castleRights and (if (currentSide == LIGHT) 1 else 4)) != 0) addMove(
+            kingStart,
+            kingsideTarget,
+            CASTLE_KINGSIDE_FLAG
+        )
+        if ((castleRights and (if (currentSide == LIGHT) CASTLE_KINGSIDE_FLAG else DOWN_OFFSET)) != 0) addMove(
+            kingStart,
+            towersideTarget,
+            CASTLE_KINGSIDE_FLAG
+        )
 
     }
 
@@ -162,7 +181,7 @@ class Board : Constantes {
             while (continueDirection) {
                 to = mailbox[mailbox64[to] + offset[p][d]]
                 when {
-                    to == -1 -> continueDirection = false
+                    to == INVALID_INDEX -> continueDirection = false
                     squareColors[to] != EMPTY -> {
                         if (squareColors[to] == opponentSide) addMove(c, to, 1)
                         continueDirection = false
@@ -195,13 +214,13 @@ class Board : Constantes {
 
     fun addPromotionMoves(from: Int, to: Int, bits: Int, movesList: MutableList<Move>) {
         (KNIGHT..QUEEN).forEach { promotionPiece ->
-            movesList.add(Move(from, to, promotionPiece, (bits or 32)))
+            movesList.add(Move(from, to, promotionPiece, (bits or CASTLE_QUEENSIDE_FLAG)))
         }
     }
 
     fun makeMove(m: Move): Boolean {
         // Gérer le roque (si applicable)
-        if (m.bits and 2 != 0) {
+        if (m.bits and CASTLE_KINGSIDE_FLAG != 0) {
             val from: Int
             val to: Int
 
@@ -243,13 +262,13 @@ class Board : Constantes {
                 }
 
                 else -> {
-                    from = -1
-                    to = -1
+                    from = INVALID_INDEX
+                    to = INVALID_INDEX
                 }
             }
 
             // Déplacer la tour pour le roque
-            if (from != -1 && to != -1) {
+            if (from != INVALID_INDEX && to != INVALID_INDEX) {
                 setSquare(squareColors, squarePieces, to, currentSide, ROOK)
                 clearSquare(squareColors, squarePieces, from)
             }
@@ -266,14 +285,14 @@ class Board : Constantes {
         castleRights = castleRights and (castle_mask[m.from.toInt()] and castle_mask[m.to.toInt()])
 
         // Mettre à jour le pion passant (si applicable)
-        enPassantSquare = if (m.bits and 8 != 0) { // Bit 8 : double déplacement de pion
-            if (currentSide == LIGHT) m.to + 8 else m.to - 8
+        enPassantSquare = if (m.bits and DOWN_OFFSET != 0) { // Bit DOWN_OFFSET : double déplacement de pion
+            if (currentSide == LIGHT) m.to + DOWN_OFFSET else m.to - DOWN_OFFSET
         } else {
-            -1
+            INVALID_INDEX
         }
 
-        // Réinitialiser ou incrémenter la règle des 50 coups
-        fiftyMoveRuleCount = if (m.bits and 17 != 0) 0 else fiftyMoveRuleCount + 1
+        // Réinitialiser ou incrémenter la règle des FIFTY_MOVE_RULE coups
+        fiftyMoveRuleCount = if (m.bits and PROMOTION_MOVE_FLAG != 0) 0 else fiftyMoveRuleCount + 1
 
         // Déplacer la pièce
         setSquare(
@@ -281,13 +300,13 @@ class Board : Constantes {
             squarePieces,
             m.to,
             currentSide,
-            if ((m.bits and 32) != 0) m.promote else squarePieces[m.from] // Promotion
+            if ((m.bits and CASTLE_QUEENSIDE_FLAG) != 0) m.promote else squarePieces[m.from] // Promotion
         )
         clearSquare(squareColors, squarePieces, m.from)
 
         // Gérer la prise en passant
         if (m.bits and 4 != 0) { // Bit 4 : prise en passant
-            val offset = if (currentSide == LIGHT) 8 else -8
+            val offset = if (currentSide == LIGHT) DOWN_OFFSET else UP_OFFSET
             clearSquare(squareColors, squarePieces, m.to + offset)
         }
 
@@ -306,11 +325,11 @@ class Board : Constantes {
 
     fun rookMovePositions(mTo: Int): Pair<Int, Int> {
         return when (mTo) {
-            62 -> F1 to H1 // Roque roi côté blanc
+            MAX_SQUARE_INDEX -> F1 to H1 // Roque roi côté blanc
             58 -> D1 to A1 // Roque dame côté blanc
             6 -> F8 to H8  // Roque roi côté noir
-            2 -> D8 to A8  // Roque dame côté noir
-            else -> -1 to -1 // Aucun roque
+            CASTLE_KINGSIDE_FLAG -> D8 to A8  // Roque dame côté noir
+            else -> INVALID_INDEX to INVALID_INDEX // Aucun roque
         }
     }
 
@@ -331,7 +350,7 @@ class Board : Constantes {
             squarePieces,
             m.from,
             currentSide,
-            if ((m.bits and 32) != 0) PAWN else squarePieces[m.to]
+            if ((m.bits and CASTLE_QUEENSIDE_FLAG) != 0) PAWN else squarePieces[m.to]
         )
 
         // Mettre à jour la position de destination en fonction de la capture
@@ -342,13 +361,13 @@ class Board : Constantes {
 
         // Gérer les roques (si le mouvement était un roque)
         when {
-            m.bits and 2 != 0 -> {
+            m.bits and CASTLE_KINGSIDE_FLAG != 0 -> {
                 val (rookFrom, rookTo) = rookMovePositions(m.to)
                 moveRookForCastling(squareColors, squarePieces, rookFrom, rookTo, currentSide)
             }
 
             m.bits and 4 != 0 -> {
-                val offset = if (currentSide == LIGHT) 8 else -8
+                val offset = if (currentSide == LIGHT) DOWN_OFFSET else UP_OFFSET
                 setSquare(squareColors, squarePieces, m.to + offset, opponentSide, PAWN)
             }
         }
@@ -375,7 +394,7 @@ class Board : Constantes {
 
     fun moveRookForCastling(colorArray: IntArray, pieceArray: IntArray, from: Int, to: Int, side: Int) {
         // Vérifie si les positions de départ et d'arrivée sont valides
-        if (from != -1 && to != -1) {
+        if (from != INVALID_INDEX && to != INVALID_INDEX) {
             setSquare(colorArray, pieceArray, to, side, ROOK) // Place la tour à la nouvelle position
             clearSquare(colorArray, pieceArray, from)        // Vide la case d'origine
         }
